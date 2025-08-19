@@ -1,0 +1,95 @@
+---
+title: "Inflation Analysis in India (1991-2022)"
+author: "Isha Tanwar"
+date: "July 10, 2025"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(lubridate)
+library(forecast)
+library(tseries)
+```
+
+## 1. Introduction
+Inflation is a key macroeconomic indicator that affects the purchasing power of consumers, monetary policy, and investment decisions. Accurate forecasting of inflation helps policymakers, especially the Reserve Bank of India (RBI), to frame effective interest rate policies. This project uses monthly inflation data from April 1991 to December 2022 to build and evaluate time series forecasting models, with a focus on ARIMA models.
+
+## 2. Loading Libraries and Data
+```{r load-data}
+setwd("C:/Users/sujal/Downloads")
+inflation_data <- read.csv("inflation_analysis.csv")
+inflation_data$Month <- as.Date(inflation_data$Month, format = "%d-%m-%Y")
+str(inflation_data)
+```
+
+```{r ts-object}
+inflation_data$year <- year(inflation_data$Month)
+inflation_data$month <- month(inflation_data$Month)
+inflation_ts <- ts(inflation_data$Inflation, start = c(1991,4), frequency = 12)
+```
+
+## 3. Exploratory Data Analysis (EDA)
+```{r eda-plot}
+inflation_data %>%
+  ggplot(aes(Month, Inflation)) +
+  geom_line(color = "#423c7d", size = 0.9) +
+  labs(title = "Monthly Inflation Trend in India (1991–2022)",
+       x = "Year", y = "Inflation Rate (%)") +
+  scale_x_date(date_labels = "%Y", date_breaks = "1 year") +
+  theme(panel.background = element_blank(), axis.text.x = 
+          element_text(angle = 90, hjust = 1))
+```
+
+## 4. Time Series Decomposition
+```{r decomposition}
+inflation_decompose <- decompose(inflation_ts, type = "additive")
+plot(inflation_decompose)
+```
+
+## 5. Stationarity Check
+```{r adf-test}
+adf_result <- adf.test(inflation_ts)
+adf_result
+```
+
+```{r acf-pacf}
+par(mfrow = c(1,2))
+acf(inflation_ts, main = "ACF of Inflation")
+pacf(inflation_ts, main = "PACF of Inflation")
+```
+
+## 6. ARIMA Model Fitting
+### a. Manual ARIMA (1,0,0)
+```{r manual-arima}
+arima_model <- arima(inflation_ts, order = c(1,0,0))
+summary(arima_model)
+```
+
+### b. Auto ARIMA
+```{r auto-arima}
+auto_model <- auto.arima(inflation_ts)
+summary(auto_model)
+```
+
+## 7. Residual Diagnostics
+```{r residuals}
+checkresiduals(auto_model)
+```
+
+## 8. Forecasting Inflation
+```{r forecast}
+forecast_inflation <- forecast(auto_model, h = 12)
+autoplot(forecast_inflation) +
+  labs(title = "Inflation Forecast for Next 12 Months",
+       x = "Year", y = "Forecasted Inflation Rate (%)") +
+  theme(panel.background = element_blank())
+```
+
+## 9. Summary of Results
+- Final model chosen by auto.arima: ARIMA(1,1,0)(2,0,0)[12]
+- The model passed the Ljung-Box test, indicating no autocorrelation in residuals.
+- The residuals are approximately normally distributed and behave like white noise.
+
+## 10. Conclusion
+This analysis shows that ARIMA models can effectively capture inflation dynamics. Forecasts indicate inflation trends for the coming year, helping economic decision-making.
